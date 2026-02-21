@@ -14,25 +14,25 @@ export const deploy = asyncHandler(async (req, res) => {
   });
   bashChildProcess.stderr.on("data", (data) => {
     process.stderr.write(data);
-    res.json({
-      message: "Failed to deploy frontend",
-    });
   });
 
   bashChildProcess.on("close", (code) => {
     if (code === 0) {
       console.log("Deployment completed successfully.");
+      return res.json({
+        message: "OK",
+      });
     } else {
       console.error(`Deployment failed with exit code ${code}.`);
+      return res.json({
+        message: "Deployment failed",
+      });
     }
-    res.json({
-      message: "OK",
-    });
   });
 
   bashChildProcess.on("error", (err) => {
     console.error("Failed to start deployment process:", err);
-    res.json({
+    return res.json({
       message: "Failed to start deployment process",
     });
   });
