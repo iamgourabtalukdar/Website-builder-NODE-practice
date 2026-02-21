@@ -29,7 +29,7 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 app.get("/", (req, res) => {
   res.json({
     status: "OK",
-    message: "DnD Website Builder Backend is Running 🚀",
+    message: "Website Builder Backend is Running 🚀 for Node.js practice",
   });
 });
 
