@@ -4,6 +4,26 @@ import { spawn } from "child_process";
 import { fileURLToPath } from "url";
 
 export const deploy = asyncHandler(async (req, res) => {
+  const givenSignature = req.headers["x-hub-signature-256"];
+  if (!givenSignature) {
+    return res.status(403).json({
+      message: "Invalid signature",
+    });
+  }
+  const calculatedSignature =
+    "sha256=" +
+    crypto
+      .createHmac("sha256", process.env.GITHUB_WEBHOOK_SECRET)
+      .update(JSON.stringify(req.body))
+      .digest("hex");
+  if (givenSignature !== calculatedSignature) {
+    return res.status(403).json({
+      message: "Invalid signature",
+    });
+  }
+  res.json({
+    message: "OK",
+  });
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
   const scriptPath = path.resolve(__dirname, "../../deploy/deploy-frontend.sh");
@@ -19,21 +39,12 @@ export const deploy = asyncHandler(async (req, res) => {
   bashChildProcess.on("close", (code) => {
     if (code === 0) {
       console.log("Deployment completed successfully.");
-      return res.json({
-        message: "OK",
-      });
     } else {
       console.error(`Deployment failed with exit code ${code}.`);
-      return res.json({
-        message: "Deployment failed",
-      });
     }
   });
 
   bashChildProcess.on("error", (err) => {
     console.error("Failed to start deployment process:", err);
-    return res.json({
-      message: "Failed to start deployment process",
-    });
   });
 });
