@@ -2,6 +2,7 @@ import path from "path";
 import asyncHandler from "../utils/asyncHandler.js";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
+import crypto from "crypto";
 
 export const deploy = asyncHandler(async (req, res) => {
   const givenSignature = req.headers["x-hub-signature-256"];
