@@ -3,8 +3,8 @@ set -e
 git pull origin main
 
 # cd ../client
-cd /home/ubuntu/Website-builder-NODE-practice/client
-npm i
+cd ../client
+npm install --include=dev
 #npm run test
 npm run build
 aws s3 cp dist/ s3://dnd-website-builder-client/ --recursive
