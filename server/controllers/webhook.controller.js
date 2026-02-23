@@ -1,33 +1,9 @@
-import path from "path";
-import asyncHandler from "../utils/asyncHandler.js";
 import { spawn } from "child_process";
+import path from "path";
 import { fileURLToPath } from "url";
-import crypto from "crypto";
+import asyncHandler from "../utils/asyncHandler.js";
 
-export const deploy = asyncHandler(async (req, res) => {
-  const givenSignature = req.headers["x-hub-signature-256"];
-  if (!givenSignature) {
-    return res.status(403).json({
-      message: "Invalid signature",
-    });
-  }
-  const calculatedSignature =
-    "sha256=" +
-    crypto
-      .createHmac("sha256", process.env.GITHUB_WEBHOOK_SECRET)
-      .update(JSON.stringify(req.body))
-      .digest("hex");
-  if (givenSignature !== calculatedSignature) {
-    return res.status(403).json({
-      message: "Invalid signature",
-    });
-  }
-  res.json({
-    message: "OK",
-  });
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const scriptPath = path.resolve(__dirname, "../../deploy/deploy-frontend.sh");
+function executeBashScript(scriptPath) {
   const bashChildProcess = spawn("bash", [scriptPath]);
 
   bashChildProcess.stdout.on("data", (data) => {
@@ -48,4 +24,50 @@ export const deploy = asyncHandler(async (req, res) => {
   bashChildProcess.on("error", (err) => {
     console.error("Failed to start deployment process:", err);
   });
+}
+export const deploy = asyncHandler(async (req, res) => {
+  res.json({
+    message: "OK",
+  });
+
+  const commits = req.body.commits;
+
+  let clientChanged = false;
+  let serverChanged = false;
+
+  for (const commit of commits) {
+    const files = [...commit.added, ...commit.modified, ...commit.removed];
+
+    for (const file of files) {
+      if (file.startsWith("client/")) clientChanged = true;
+      if (file.startsWith("server/")) serverChanged = true;
+      if (clientChanged && serverChanged) break;
+    }
+    if (clientChanged && serverChanged) break;
+  }
+
+  if (!clientChanged && !serverChanged) {
+    console.log("No deployable changes detected.");
+  }
+
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+
+  if (clientChanged) {
+    console.log("Client changed → Deploying frontend...");
+    const scriptPath = path.resolve(
+      __dirname,
+      "../../deploy/deploy-frontend.sh",
+    );
+    executeBashScript(scriptPath);
+  }
+
+  if (serverChanged) {
+    console.log("Server changed → Deploying backend...");
+    const scriptPath = path.resolve(
+      __dirname,
+      "../../deploy/deploy-backend.sh",
+    );
+    executeBashScript(scriptPath);
+  }
 });
