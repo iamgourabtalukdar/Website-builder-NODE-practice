@@ -1,5 +1,5 @@
-import asyncHandler from "../utils/asyncHandler";
 import crypto from "crypto";
+import asyncHandler from "../utils/asyncHandler.js";
 
 export const verifyGithubSignature = asyncHandler(async (req, res, next) => {
   const givenSignature = req.headers["x-hub-signature-256"];
